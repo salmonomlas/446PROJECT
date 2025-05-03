@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MFA Verification</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .mfaPage { display:flex; flex-direction:column; align-items:center; max-width:400px; margin:2rem auto; }
+    .mfaPage > * { width:100%; margin:0.75rem 0; }
+    .error { color:red; text-align:center; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <div class="mfaPage">
+    <h2>Enter your one-time code</h2>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form method="post">
+      <input name="token" type="text" maxlength="6" pattern="[0-9]{6}"
+             inputmode="numeric" placeholder="123456" required autocomplete="one-time-code">
+      <button type="submit">Verify & Continue</button>
+    </form>
+  </div>
+</body>
+</html>

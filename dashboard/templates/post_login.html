@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script>
+      sessionStorage.setItem("loggedIn", "true");
+      window.location.href = "{{ url_for('showDashboardPage') }}";
+    </script>
+  </head>
+  <body></body>
+</html>

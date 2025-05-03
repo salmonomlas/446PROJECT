@@ -1,0 +1,8 @@
+Flask
+Werkzeug
+gunicorn
+pymongo
+python-dotenv
+pyotp
+qrcode
+pillow

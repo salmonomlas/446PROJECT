@@ -1,0 +1,36 @@
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - DASHNET
+  dashboard:
+    build: ./dashboard
+    container_name: dashboard
+    env_file: .env
+    expose:
+      - "5000"
+    networks:
+      - DASHNET
+  nginx:
+    image: nginx:stable
+    container_name: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./dashboard/static:/usr/share/nginx/html/static:ro
+    ports:
+      - "443:443"
+    networks:
+      - DASHNET
+
+networks:
+  DASHNET:
+    driver: bridge
+
+volumes:
+  mongo_data:
