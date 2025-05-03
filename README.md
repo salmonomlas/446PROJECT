@@ -34,6 +34,6 @@ From here, you can click the "register account" button and create a new account 
 
 Enter the credentials again, then scan the QR code with your authenticator app to check the 2FA and enter the dashboard
 
-#**REBUILDING CONTAINERS:**
+# **REBUILDING CONTAINERS:**
 
 If edits need to be made on the project, stop the containers (either by pressing ctrl + c in your coding environment's terminal, or pressing the red square on Docker Desktop), run "docker-compose down" to wipe the old containers and their images/old volumes. Make your edits, then run "docker-compose up --build" again to rebuild
