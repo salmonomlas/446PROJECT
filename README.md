@@ -20,7 +20,7 @@ If everything launched correctly, open MongoDB Compass and click "+ Add new conn
 Use the default URI (should direct to localhost:27017) and click "Save and Connect"
 
 This should bring up a few dropdown menus, the one you're interested in is "dashboardDb"
-Click on this to reveal the folder "users" - This is where you'll track added users on your machine
+Click on this to reveal the folder "users" - This is where you'll track added users on your machine (It should be empty on the first launch)
 
 #4
 In order to launch the dashboard on HTTPS, open the certificates page on your browser (usually Settings -> "search certificate" -> View Certificates -> Import Certificate
