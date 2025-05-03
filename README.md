@@ -8,7 +8,7 @@ Open powershell and run: (or direct to the project root folder in code environme
 
 Allow for the containers to fully build, may take some time
 
-Check progress in docker desktop - when finished should see a stack called "446proj" with a green status next to it
+Check progress in Docker Desktop - when finished should see a stack called "446proj" with a green status next to it
 (Can click the dropdown to check on individual containers)
 
 #3.1
@@ -33,3 +33,7 @@ Type the URL: "https://localhost/" and hit enter - this should bring you to the 
 From here, you can click the "register account" button and create a new account - these credentials will get saved into the MongoDB database
 
 Enter the credentials again, then scan the QR code with your authenticator app to check the 2FA and enter the dashboard
+
+#**REBUILDING CONTAINERS:**
+
+If edits need to be made on the project, stop the containers (either by pressing ctrl + c in your coding environment's terminal, or pressing the red square on Docker Desktop), run "docker-compose down" to wipe the old containers and their images/old volumes. Make your edits, then run "docker-compose up --build" again to rebuild
