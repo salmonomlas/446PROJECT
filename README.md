@@ -24,6 +24,7 @@ Click on this to reveal the folder "users" - This is where you'll track added us
 
 #4
 In order to launch the dashboard on HTTPS, open the certificates page on your browser (usually Settings -> "search certificate" -> View Certificates -> Import Certificate
+
 Now in the project root folder, direct to nginx/certs and grab the privkey.pem file - Import this into your browser certificates and FULLY shut down your browser (highly suggest killing it in task manager then relaunching)
 
 #5
