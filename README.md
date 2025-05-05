@@ -1,4 +1,4 @@
-# **START GUIDE:**
+# **START GUIDE:** (OUT OF DATE AS OF 5/4 - 8:05PM)
 
 #1.
 Install Docker Desktop & MongoDB Compass - Download an Authenticator app on your phone [Google Authenticator and Microsoft Authenticator are confirmed working]
