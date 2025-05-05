@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Admin Console</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Admin Console</h1>
+
+  {% with msgs = get_flashed_messages(category_filter=["info","error"]) %}
+    {% for m in msgs %}
+      <div class="{{ 'error' if 'error' in m else 'info' }}">{{ m }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Change Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>{{ u.role }}</td>
+        <td>
+          <form method="post" action="{{ url_for('updateUserRole') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="username" value="{{ u.username }}">
+            <select name="role">
+              <option value="user" {% if u.role=='user' %}selected{% endif %}>user</option>
+              <option value="admin"{% if u.role=='admin' %}selected{% endif %}>admin</option>
+            </select>
+            <button>Update</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" action="{{ url_for('handleLogout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Log Out</button>
+  </form>
+</body>
+</html>
