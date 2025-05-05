@@ -1,4 +1,6 @@
 import os, json, qrcode, io, pyotp
+from flask_wtf import CSRFProtect
+from flask_cors import CORS
 from flask import (
     Flask,
     render_template,
@@ -29,6 +31,8 @@ secretKey    = os.getenv("SECRET_KEY",   "changeme")
 sessionTimeout = int(os.getenv("SESSION_TIMEOUT", "30"))
 
 app = Flask(__name__, static_folder="static")
+csrf = CSRFProtect(app)
+CORS(app, origins=["https://localhost"], supports_credentials=True)
 app.secret_key = secretKey
 app.permanent_session_lifetime = timedelta(minutes=sessionTimeout)
 
@@ -65,22 +69,19 @@ def showLoginPage():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-
         userRec = usersColl.find_one({"_id": username})
 
         if userRec and check_password_hash(userRec["passwordHash"], password):
             session.clear()
+            session["role"] = userRec.get("role", "user")
 
-            # Case A: new user -> enroll in MFA
             if not userRec.get("mfaEnabled", False):
                 session["loggedIn"] = True
                 session["username"] = username
                 return redirect(url_for("mfaSetup"))
 
-            # Case B: returning user -> challenge OTP
             session["preMfaUser"] = username
-            return redirect(url_for("showMfaChallenge"))
-
+            return redirect(url_for("mfaChallenge"))
 
         flash("Invalid username or password", "error")
 
@@ -88,27 +89,27 @@ def showLoginPage():
 
 @app.route("/", methods=["GET"])
 @loginRequired
-def showDashboardPage():
-    return render_template("dashboard.html")
+def showhomePage():
+    return render_template("home.html")
 
 # ——— DUMMY ACTIONS - ROUTE TO SENSORS LATER ———
 @app.route("/action1", methods=["POST"])
 @loginRequired
 def handleAction1():
     flash("Action 1 executed!", "info")
-    return redirect(url_for("showDashboardPage"))
+    return redirect(url_for("showhomePage"))
 
 @app.route("/action2", methods=["POST"])
 @loginRequired
 def handleAction2():
     flash("Action 2 executed!", "info")
-    return redirect(url_for("showDashboardPage"))
+    return redirect(url_for("showhomePage"))
 
 @app.route("/action3", methods=["POST"])
 @loginRequired
 def handleAction3():
     flash("Action 3 executed!", "info")
-    return redirect(url_for("showDashboardPage"))
+    return redirect(url_for("showhomePage"))
 
 @app.route("/register", methods=["GET", "POST"])
 def showRegisterPage():
@@ -124,7 +125,8 @@ def showRegisterPage():
             "_id": username,
             "passwordHash": generate_password_hash(password),
             "mfaEnabled": False, 
-            "mfaSecret": None
+            "mfaSecret": None,
+            "role": "user"
         }) 
         flash("Account created successfully", "info")
         return redirect(url_for("showLoginPage"))
@@ -151,7 +153,10 @@ def mfaSetup():
         {"$set": {"mfaEnabled": True, "mfaSecret": secret}}
     )
     session.pop("mfaTempSecret", None)
-    return render_template("post_login.html")
+    if session.get("role") == "admin":
+        return redirect(url_for("showSecurityPage"))
+    else:
+        return redirect(url_for("showhomePage"))
 
 @app.route("/mfa-setup/qrcode", methods=["GET"])
 @loginRequired
@@ -172,27 +177,58 @@ def mfaSetupQrCode():
 
     return send_file(buf, mimetype="image/png")
 
-@app.route("/mfa-challenge", methods=["GET"])
-def showMfaChallenge():
+@app.route("/mfa-challenge", methods=["GET", "POST"])
+def mfaChallenge():
     if "preMfaUser" not in session:
         return redirect(url_for("showLoginPage"))
+
+    if request.method == "POST":
+        username = session["preMfaUser"]
+        token    = request.form.get("token", "").strip()
+        userRec  = usersColl.find_one({"_id": username})
+
+        if userRec and pyotp.TOTP(userRec["mfaSecret"]).verify(token, valid_window=1):
+            session.clear()
+            session["loggedIn"] = True
+            session["username"] = username
+            session["role"]     = userRec.get("role", "user")
+
+            if session["role"] == "admin":
+                return redirect(url_for("showSecurityPage"))
+            return redirect(url_for("showhomePage"))
+
+        flash("Invalid code, please try again.", "error")
+
     return render_template("mfa_challenge.html")
 
-@app.route("/mfa-challenge", methods=["POST"])
-def handleMfaChallenge():
-    username = session.get("preMfaUser")
-    token    = request.form.get("token", "").strip()
-    userRec  = usersColl.find_one({"_id": username})
+@app.route("/security", methods=["GET"])
+@loginRequired
+def showSecurityPage():
+    if session.get("role") != "admin":
+        abort(403)
+    users = list(usersColl.find({}, {"_id": 1, "role": 1}))
+    usersList = [{"username": u["_id"], "role": u.get("role", "user")} for u in users]
+    return render_template("security.html", users=usersList)
 
-    if userRec and pyotp.TOTP(userRec["mfaSecret"]).verify(token, valid_window=1):
-        session.clear()
-        session["loggedIn"] = True
-        session["username"] = username
-        session.pop("preMfaUser", None)
-        return render_template("post_login.html")
+@app.route("/security/update-role", methods=["POST"])
+@loginRequired
+def updateUserRole():
+    # Only admins may perform updates
+    if session.get("role") != "admin":
+        abort(403)
 
-    return render_template("mfa_challenge.html",
-                           error="Invalid code, please try again.")
+    username = request.form.get("username")
+    newRole  = request.form.get("role")
+    if username and newRole in ("user", "admin"):
+        usersColl.update_one(
+            {"_id": username},
+            {"$set": {"role": newRole}}
+        )
+        flash(f"Role of {username} changed to {newRole}", "info")
+    else:
+        flash("Invalid user or role", "error")
+
+    return redirect(url_for("showSecurityPage"))
 
 @app.route("/logout", methods=["POST"])
 def handleLogout():
@@ -204,6 +240,22 @@ def addSecurityHeaders(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
     response.headers["Pragma"]        = "no-cache"
     response.headers["Expires"]       = "0"
+    response.headers["X-Frame-Optinos"] = "DENY"
+    response.headers["Content-Security-Policy"] = (
+        "base-uri 'self'; "
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self' data:; "
+        "connect-src 'self'; "
+        "object-src 'none'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self';"
+        "manifest-src 'self'; "
+        "upgrade-insecure-requests; "
+    )
+                                                    
     return response
 
 if __name__ == "__main__":

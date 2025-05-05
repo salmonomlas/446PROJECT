@@ -47,6 +47,7 @@
       2. Enter the 6‑digit code below to confirm setup:
     </p>
     <form method="post" action="{{ url_for('mfaSetup') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input
         name="token"
         type="text"

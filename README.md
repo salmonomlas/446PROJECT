@@ -8,7 +8,7 @@ Open powershell and run: (or direct to the project root folder in code environme
 
 Allow for the containers to fully build, may take some time
 
-Check progress in Docker Desktop - when finished should see a stack called "446proj" with a green status next to it
+Check progress in Docker Desktop - when finished should see a stack called "446project" with a green status next to it
 (Can click the dropdown to check on individual containers)
 
 #3.1

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Main Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+
+  <style> body { visibility: hidden; } </style>
+
+  <script>
+  (function(){
+    sessionStorage.setItem("loggedIn", "true");
+
+    function kick() {
+      window.location.replace("{{ url_for('showLoginPage') }}");
+    }
+    if (!sessionStorage.getItem("loggedIn")) {
+      kick(); return;
+    }
+    var nav = performance.getEntriesByType
+                ? performance.getEntriesByType("navigation")[0]
+                : performance.navigation;
+    if (nav && (nav.type === "back_forward" || nav.type === 2)) {
+      kick(); return;
+    }
+    window.addEventListener("load", function(){
+      document.body.style.visibility = "visible";
+    });
+  })();
+  </script>
+</head>
+<body>
+  <h1>Main Dashboard</h1>
+
+  {% with msgs = get_flashed_messages(category_filter=["info"]) %}
+    {% for m in msgs %}
+      <div class="info">{{ m }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('handleAction1') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Action 1</button>
+  </form>
+  <form method="post" action="{{ url_for('handleAction2') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Action 2</button>
+  </form>
+  <form method="post" action="{{ url_for('handleAction3') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Action 3</button>
+  </form>
+
+  <form method="post" action="{{ url_for('handleLogout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Log Out</button>
+  </form>
+</body>
+</html>

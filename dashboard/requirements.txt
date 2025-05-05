@@ -6,3 +6,5 @@ python-dotenv
 pyotp
 qrcode
 pillow
+Flask-WTF
+Flask-Cors
