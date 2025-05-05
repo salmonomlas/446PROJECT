@@ -76,8 +76,7 @@ def showLoginPage():
             session["role"] = userRec.get("role", "user")
 
             if not userRec.get("mfaEnabled", False):
-                session["loggedIn"] = True
-                session["username"] = username
+                session["preMfaUser"] = username
                 return redirect(url_for("mfaSetup"))
 
             session["preMfaUser"] = username
@@ -134,39 +133,57 @@ def showRegisterPage():
     return render_template("register.html")
 
 @app.route("/mfa-setup", methods=["GET", "POST"])
-@loginRequired
 def mfaSetup():
+    # Only allow access if we've just passed credential check
+    if "preMfaUser" not in session:
+        return redirect(url_for("showLoginPage"))
+
     if request.method == "GET":
+        # Generate & stash a fresh TOTP secret
         secret = pyotp.random_base32()
         session["mfaTempSecret"] = secret
         return render_template("mfa_setup.html")
 
+    # POST: verify the one-time code
     token  = request.form.get("token", "").strip()
     secret = session.get("mfaTempSecret")
     if not secret or not pyotp.TOTP(secret).verify(token, valid_window=1):
+        # On failure, re-render the setup page with an error
         return render_template("mfa_setup.html",
                                error="Invalid code, please try again.")
 
-    username = session.get("username")
+    # Success! Persist & enable MFA for the preMfaUser, not the old username key
+    username = session.pop("preMfaUser")
     usersColl.update_one(
         {"_id": username},
         {"$set": {"mfaEnabled": True, "mfaSecret": secret}}
     )
+
+    # Clean up temp secret
     session.pop("mfaTempSecret", None)
+
+    # Now mark the session fully logged in
+    session["loggedIn"] = True
+    session["username"] = username
+
+    # Redirect based on role
     if session.get("role") == "admin":
         return redirect(url_for("showSecurityPage"))
-    else:
-        return redirect(url_for("showhomePage"))
+    return redirect(url_for("showhomePage"))
 
 @app.route("/mfa-setup/qrcode", methods=["GET"])
-@loginRequired
 def mfaSetupQrCode():
+    if "preMfaUser" not in session:
+        return redirect(url_for("showLoginPage"))
     secret = session.get("mfaTempSecret")
     if not secret:
         abort(404)
 
+    username = session.get("preMfaUser")
+    label = f"{username}"
+    
     uri = pyotp.TOTP(secret).provisioning_uri(
-        name=session.get("username", "user"),
+        name=label,
         issuer_name="Dashboard"
     )
 
